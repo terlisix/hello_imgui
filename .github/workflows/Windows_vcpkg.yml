@@ -1,4 +1,11 @@
-name: Windows_vcpkg
+# Temporarily disabled because google once again changed the build process and broke builds that worked previously
+#
+# Will be fixed later...
+
+#org.gradle.process.internal.ExecException: A problem occurred starting process
+#  'command '/usr/local/lib/android/sdk/ndk-bundle/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-strip''
+
+name: Android
 
 on:
   push:
@@ -6,25 +13,30 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
-#    - name: Setup interactive tmate session
-#      uses: mxschmitt/action-tmate@v3
+    - name: Download SDL
+      run: ./tools/sdl_download.sh
 
-    - name: Install sdl and glfw via vcpkg
-      run: vcpkg install glfw3:x64-windows sdl2:x64-windows
+    - name: Setup interactive tmate session
+      uses: mxschmitt/action-tmate@v2
 
-    - name: Configure
+    - name: invoke cmake to create gradle / android studio project
+      # This will create the project
+      # build_android/hello_imgui_demodocking_AndroidStudio
       run: |
-         mkdir build
-         cd build
-         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=c:/vcpkg/scripts/buildsystems/vcpkg.cmake -DHELLOIMGUI_USE_SDL_OPENGL3=ON -DHELLOIMGUI_USE_GLFW_OPENGL3=ON -DHELLOIMGUI_USE_GLAD=ON -DHELLOIMGUI_BUILD_DOCS=ON ..
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          mkdir build_android
+          cd build_android
+          ../tools/android/cmake_arm-android.sh
 
-    - name: Build
-      working-directory: build
+    - name: gradlew build
+      # This will build for all android architectures
       run: |
-         cmake --build .
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          cd build_android/hello_imgui_demodocking_AndroidStudio
+          ./gradlew build
